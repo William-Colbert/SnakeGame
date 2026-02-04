@@ -53,7 +53,7 @@ def drawSquares():
     sqSize = 70
 
 
-    #Draw squares on chessboard
+    #Draw squares on snakeBoard
     darkSquare = True
     for i in range(100):
         R = pg.Rect(xPos,yPos,sqSize,sqSize)
@@ -79,57 +79,72 @@ def setupHead():
     h = head(8, 4, img)
     return h
 
-def drawBoard(snakeBoard):
-    #Start on black's side
-    #Go through entire board and draw the current position
-    for row in range(10):
-        for col in range(10):
-            object = snakeBoard[row][col]
-            if object:
-                object.draw()
-                                        
-    return snakeBoard
+def drawBoard(snakeD):
+    for obj in snakeD:
+        snakeD[obj].draw()
 
+def updateBoard(snake, dir):
+    head = snake.get(0)
+    partnerOldRow = head.row
+    partnerOldCol = head.col
+    if dir == "up":
+        head.row -= 1
+    elif dir == "down":
+        head.row += 1
+    elif dir == "left":
+        head.col -= 1
+    elif dir == "right":
+        head.col += 1
+
+    for obj in snake:
+        myID = obj
+        if myID != 0:
+            myOldRow = snake[obj].row
+            myOldCol = snake[obj].col
+
+            snake[obj].row = partnerOldRow
+            snake[obj].col = partnerOldCol
+
+            partnerOldRow = myOldRow
+            partnerOldCol = myOldCol
+
+    return snake
 #Start of Main Code
 #Initialize Screen
 pg.init()
+timer = 300
 size = width, height = 1000, 750
 screen = pg.display.set_mode(size)
+clock = pg.time.Clock()
 snakeHead = setupHead()
 bodyImg = pg.image.load('SnakeGame/assets/snakeBody.png').convert_alpha()
 snakeBody = body(9, 4, bodyImg)
-board = [[None]*10,
-         [None]*10,
-         [None]*10,
-         [None]*10,
-         [None]*10,
-         [None]*10,
-         [None]*10,
-         [None]*10,
-         [None, None, None, None, snakeHead, None, None, None, None, None],
-         [None, None, None, None, snakeBody, None, None, None, None, None]
-         ]
-#gameState = "title"
-
-#Create start button
-#startImg = pg.image.load('ChessProject/ChessGame/assets/start.png').convert_alpha()
-#startImg = pg.transform.scale_by(startImg, 0.2)
-#startBtn = Button(317, 335, startImg)
-
-#Create main menu button
-#backImg = pg.image.load('ChessProject/ChessGame/assets/back.png').convert_alpha()
-#backImg = pg.transform.scale_by(backImg, 0.1)
-#backBtn = Button(740, 5, backImg)
-
+snakeDict = {0: snakeHead,
+             1: snakeBody}
+direction = "up"
 
 #Do gameplay loop forever, close when X is clicked
 while True:
     for event in pg.event.get():
         if event.type == pg.QUIT:
             sys.exit()
+        if event.type == pg.KEYDOWN:
+            if event.key == pg.K_w:
+                direction = "up"
+            if event.key == pg.K_a:
+                direction = "left"
+            if event.key == pg.K_s:
+                direction = "down"
+            if event.key == pg.K_d:
+                direction = "right"
+
     screen.fill("seagreen")
     drawSquares()
-    board = drawBoard(board)
-    #On title screen, show title image and start button
-    #if gameState == "title":
+    drawBoard(snakeDict)
+    ticks = pg.time.get_ticks()
+    if ticks > timer:
+        timer += 300
+        snakeDict = updateBoard(snakeDict, direction)
+    
     pg.display.flip()
+    clock.tick(60)
