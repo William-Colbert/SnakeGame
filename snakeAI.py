@@ -111,17 +111,31 @@ class snakeGameAI():
         for obj in snakeD:
             snakeD[obj].draw(screen)
 
-    def updateBoard(self, snake, dir):
+    def updateBoard(self, snake, action):
+        RIGHT = 0
+        DOWN = 1
+        LEFT = 2
+        UP = 3
+        clockwise = [RIGHT, DOWN, LEFT, UP]
+
+        if np.array_equal(action, [1,0,0]):
+            newDir = self.direction
+        elif np.array_equal(action, [0,1,0]):
+            newDir = (self.direction + 1) % 4
+        else:
+            newDir = (self.direction - 1) % 4
+        self.direction = newDir
+    
         self.head = snake.get(0)
         self.partnerOldRow = self.head.row
         self.partnerOldCol = self.head.col
-        if dir == "up":
+        if self.direction == 3:
             self.head.row -= 1
-        elif dir == "down":
+        elif self.direction == 1:
             self.head.row += 1
-        elif dir == "left":
+        elif self.direction == 2:
             self.head.col -= 1
-        elif dir == "right":
+        elif self.direction == 0:
             self.head.col += 1
 
         for obj in snake:
@@ -138,26 +152,26 @@ class snakeGameAI():
 
         return snake
 
-    def checkGameOver(self, snake, dir):
+    def checkGameOver(self, snake, action):
         self.head = snake.get(0)
-        if dir == "up" and self.head.row - 1 < 0:
+        if action == "up" and self.head.row - 1 < 0:
             return True
-        elif dir == "down" and self.head.row + 1 > 9:
+        elif action == "down" and self.head.row + 1 > 9:
             return True
-        elif dir == "left" and self.head.col - 1 < 0:
+        elif action == "left" and self.head.col - 1 < 0:
             return True
-        elif dir == "right" and self.head.col + 1 > 9:
+        elif action == "right" and self.head.col + 1 > 9:
             return True
         
         for obj in snake:
             self.current = snake[obj]
-            if self.head.col - 1 == self.current.col and self.head.row == self.current.row and dir == "left":
+            if self.head.col - 1 == self.current.col and self.head.row == self.current.row and action == "left":
                 return True
-            if self.head.col + 1 == self.current.col and self.head.row == self.current.row and dir == "right":
+            if self.head.col + 1 == self.current.col and self.head.row == self.current.row and action == "right":
                 return True
-            if self.head.col == self.current.col and self.head.row - 1 == self.current.row and dir == "up":
+            if self.head.col == self.current.col and self.head.row - 1 == self.current.row and action == "up":
                 return True
-            if self.head.col == self.current.col and self.head.row + 1 == self.current.row and dir == "down":
+            if self.head.col == self.current.col and self.head.row + 1 == self.current.row and action == "down":
                 return True
         
         return False
@@ -181,7 +195,7 @@ class snakeGameAI():
             return True
         return False
 
-    def growSnake(self, snake, dir, id, img):
+    def growSnake(self, snake, id, img):
         self.lastBody = snake.get(len(snake) - 1)
         self.canGrowLeft = True
         self.canGrowRight = True
@@ -218,26 +232,15 @@ class snakeGameAI():
     
     #Do gameplay loop forever, close when X is clicked
     def playStep(self, action):
+        self.frame_iteration += 1
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 sys.exit()
-            if event.type == pg.KEYDOWN:
-                if event.key == pg.K_w:
-                    if self.lastMove != "down":
-                        self.direction = "up"
-                if event.key == pg.K_a:
-                    if self.lastMove != "right":
-                        self.direction = "left"
-                if event.key == pg.K_s:
-                    if self.lastMove != "up":
-                        self.direction = "down"
-                if event.key == pg.K_d:
-                    if self.lastMove != "left":
-                        self.direction = "right"
 
         self.screen.fill("seagreen")
         self.drawSquares()
         self.drawBoard(self.snakeDict, self.screen)
+        reward = 0
         if self.app:
             self.app.draw(self.screen)
         else:
@@ -246,28 +249,21 @@ class snakeGameAI():
         if self.ticks > self.timer:
             self.timer += 250
             if not self.gameOver:
-                self.gameOver = self.checkGameOver(self.snakeDict, self.direction)
+                self.gameOver = self.checkGameOver(self.snakeDict, action)
             if not self.gameOver:
-                self.snakeDict = self.updateBoard(self.snakeDict, self.direction)
-                self.lastMove = self.direction
+                self.snakeDict = self.updateBoard(self.snakeDict, action)
+                self.lastMove = action
                 if self.collectApple(self.snakeDict, self.app):
+                    reward += 10
                     self.app = None
                     self.score += 1
-                    self.snakeDict = self.growSnake(self.snakeDict, self.lastMove, self.id, self.bodyImg)
+                    self.snakeDict = self.growSnake(self.snakeDict, self.id, self.bodyImg)
                     self.id += 1
                     print(self.score)
+            if self.gameOver or self.frame_iteration > 100*len(self.snakeDict):
+                reward -= 10
+                return reward, self.gameOver, self.score
         
         pg.display.flip()
         self.clock.tick(60)
-        return self.gameOver, self.score
-if __name__ == '__main__':
-    game = snakeGameAI()
-
-    while True:
-        gameOver, score = game.playStep()
-
-        if gameOver == True:
-            break
-    print('Final Score:', score)
-
-    pg.quit()
+        return reward, self.gameOver, self.score
