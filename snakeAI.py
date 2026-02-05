@@ -58,8 +58,9 @@ class snakeGameAI():
 
     def reset(self):
         self.timer = 250
-        self.snakeHead = self.setupHead()
+        self.headImg = pg.image.load('SnakeGame/assets/snakeHead.png').convert_alpha()
         self.bodyImg = pg.image.load('SnakeGame/assets/snakeBody.png').convert_alpha()
+        self.snakeHead = self.head(8, 4, self.headImg)
         self.snakeBody = self.body(9, 4, self.bodyImg)
         self.snakeDict = {0: self.snakeHead,
                     1: self.snakeBody}
@@ -102,11 +103,6 @@ class snakeGameAI():
             else:
                 xPos += 70
 
-    def setupHead(self):
-        img = pg.image.load('SnakeGame/assets/snakeHead.png').convert_alpha()
-        h = self.head(8, 4, img)
-        return h
-
     def drawBoard(self, snakeD, screen):
         for obj in snakeD:
             snakeD[obj].draw(screen)
@@ -126,17 +122,17 @@ class snakeGameAI():
             newDir = (self.direction - 1) % 4
         self.direction = newDir
     
-        self.head = snake.get(0)
-        self.partnerOldRow = self.head.row
-        self.partnerOldCol = self.head.col
+        head = snake.get(0)
+        self.partnerOldRow = head.row
+        self.partnerOldCol = head.col
         if self.direction == 3:
-            self.head.row -= 1
+            head.row -= 1
         elif self.direction == 1:
-            self.head.row += 1
+            head.row += 1
         elif self.direction == 2:
-            self.head.col -= 1
+            head.col -= 1
         elif self.direction == 0:
-            self.head.col += 1
+            head.col += 1
 
         for obj in snake:
             self.myID = obj
@@ -153,25 +149,25 @@ class snakeGameAI():
         return snake
 
     def checkGameOver(self, snake, action):
-        self.head = snake.get(0)
-        if action == "up" and self.head.row - 1 < 0:
+        head = snake.get(0)
+        if action == 3 and head.row - 1 < 0:
             return True
-        elif action == "down" and self.head.row + 1 > 9:
+        elif action == 1 and head.row + 1 > 9:
             return True
-        elif action == "left" and self.head.col - 1 < 0:
+        elif action == 2 and head.col - 1 < 0:
             return True
-        elif action == "right" and self.head.col + 1 > 9:
+        elif action == 0 and head.col + 1 > 9:
             return True
         
         for obj in snake:
             self.current = snake[obj]
-            if self.head.col - 1 == self.current.col and self.head.row == self.current.row and action == "left":
+            if head.col - 1 == self.current.col and head.row == self.current.row and action == 2:
                 return True
-            if self.head.col + 1 == self.current.col and self.head.row == self.current.row and action == "right":
+            if head.col + 1 == self.current.col and head.row == self.current.row and action == 0:
                 return True
-            if self.head.col == self.current.col and self.head.row - 1 == self.current.row and action == "up":
+            if head.col == self.current.col and head.row - 1 == self.current.row and action == 3:
                 return True
-            if self.head.col == self.current.col and self.head.row + 1 == self.current.row and action == "down":
+            if head.col == self.current.col and head.row + 1 == self.current.row and action == 1:
                 return True
         
         return False
@@ -190,8 +186,8 @@ class snakeGameAI():
                 return self.apple(self.row, self.col, img)
 
     def collectApple(self, snake, app):
-        self.head = snake.get(0)
-        if self.head.row == app.row and self.head.col == app.col:
+        head = snake.get(0)
+        if head.row == app.row and head.col == app.col:
             return True
         return False
 
@@ -204,13 +200,13 @@ class snakeGameAI():
         for obj in snake:
             self.current = snake[obj]
             if self.lastBody.col - 1 == self.current.col and self.lastBody.row == self.current.row or self.lastBody.col - 1 < 0:
-                canGrowLeft = False
+                self.canGrowLeft = False
             if self.lastBody.col + 1 == self.current.col and self.lastBody.row == self.current.row or self.lastBody.col + 1 > 9:
-                canGrowRight = False
+                self.canGrowRight = False
             if self.lastBody.col == self.current.col and self.lastBody.row - 1 == self.current.row or self.lastBody.row - 1 < 0:
-                canGrowUp = False
+                self.canGrowUp = False
             if self.lastBody.col == self.current.col and self.lastBody.row + 1 == self.current.row or self.lastBody.row + 1 > 9:
-                canGrowDown = False
+                self.canGrowDown = False
 
         if self.canGrowLeft:
             snake[id] = self.body(self.lastBody.row, self.lastBody.col - 1, img)
@@ -236,7 +232,7 @@ class snakeGameAI():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 sys.exit()
-
+        self.direction = action
         self.screen.fill("seagreen")
         self.drawSquares()
         self.drawBoard(self.snakeDict, self.screen)
@@ -252,18 +248,21 @@ class snakeGameAI():
                 self.gameOver = self.checkGameOver(self.snakeDict, action)
             if not self.gameOver:
                 self.snakeDict = self.updateBoard(self.snakeDict, action)
-                self.lastMove = action
+                self.lastMove = self.direction
                 if self.collectApple(self.snakeDict, self.app):
                     reward += 10
-                    self.app = None
+                    self.app = self.spawnApple(self.snakeDict, self.appleImg)
                     self.score += 1
                     self.snakeDict = self.growSnake(self.snakeDict, self.id, self.bodyImg)
                     self.id += 1
                     print(self.score)
+                else:
+                    reward -= 0.1
             if self.gameOver or self.frame_iteration > 100*len(self.snakeDict):
                 reward -= 10
+                self.reset()
                 return reward, self.gameOver, self.score
         
         pg.display.flip()
-        self.clock.tick(60)
+        self.clock.tick(10)
         return reward, self.gameOver, self.score

@@ -3,6 +3,8 @@ import random
 import numpy as np
 from collections import deque
 from SnakeGame.snakeAI import snakeGameAI
+from SnakeGame.model import LinearQNet, QTrainer
+from SnakeGame.helper import plot
 
 MAX_MEMORY = 100_000
 BATCH_SIZE = 1000
@@ -12,10 +14,10 @@ class Agent:
     def __init__(self):
         self.numGames = 0
         self.epsilon = 0 #randomness
-        self.gamma = 0 #discount rate
+        self.gamma = 0.9 #discount rate
         self.memory = deque(maxlen=MAX_MEMORY) #poplef()
-        self.model = None #todo
-        self.trainer = None #todo
+        self.model = LinearQNet(11, 256, 4)
+        self.trainer = QTrainer(self.model, lr = LR, gamma = self.gamma)
 
     def getState(self, game):
          head = game.snakeDict.get(0)
@@ -81,15 +83,15 @@ class Agent:
     def getAction(self, state):
         #random moves: tradeoff exploration/exploitation
         self.epsilon = 80 - self.numGames
-        finalMove = [0,0,0]
+        finalMove = 0
         if random.randint(0, 200) < self.epsilon:
-            move = random.randint(0, 2)
-            finalMove[move] = 1
+            move = random.randint(0, 3)
+            finalMove = move
         else:
             state0 = torch.tensor(state, dtype=torch.float)
-            prediction = self.model.predict(state0)
+            prediction = self.model(state0)
             move = torch.argmax(prediction).item()
-            finalMove[move] = 1
+            finalMove = move
 
         return finalMove
 
@@ -97,7 +99,7 @@ def train():
     plotScores = []
     plotMeanScores = []
     totalScore = 0
-    recored = 0
+    record = 0
     agent = Agent()
     game = snakeGameAI()
     
@@ -121,11 +123,15 @@ def train():
 
             if score > record:
                 record = score
-                #agent.model.save()
+                agent.model.save()
 
                 print('Game', agent.numGames, 'Score', score, 'Record', record)
 
-                #plot
+                plotScores.append(score)
+                totalScore += score
+                meanScore = totalScore / agent.numGames
+                plotMeanScores.append(meanScore)
+                plot(plotScores, plotMeanScores)
 
 
 
