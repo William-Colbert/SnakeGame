@@ -63,8 +63,8 @@ class snakeGameAI():
         self.snakeBody = self.body(9, 4, self.bodyImg)
         self.snakeDict = {0: self.snakeHead,
                     1: self.snakeBody}
-        self.direction = "up"
-        self.lastMove = "down"
+        self.direction = 3
+        self.lastMove = 1
         self.gameOver = False
         self.appleImg = pg.image.load('SnakeGame/assets/apple.png').convert_alpha()
         self.app = self.spawnApple(self.snakeDict, self.appleImg)
