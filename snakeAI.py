@@ -2,11 +2,20 @@
 import numpy as np
 import pygame as pg
 import random
+from enum import Enum
 import math
 import sys
 
 pg.init()
+class Direction(Enum):
+        RIGHT = 1
+        LEFT = 2
+        UP = 3
+        DOWN = 4
+
 class snakeGameAI():
+
+    
     class head():
         def __init__(self, row, col, image):
             self.row = row
@@ -64,8 +73,8 @@ class snakeGameAI():
         self.snakeBody = self.body(9, 4, self.bodyImg)
         self.snakeDict = {0: self.snakeHead,
                     1: self.snakeBody}
-        self.direction = 3
-        self.lastMove = 1
+        self.direction = Direction.UP
+        self.lastMove = Direction.DOWN
         self.gameOver = False
         self.appleImg = pg.image.load('SnakeGame/assets/apple.png').convert_alpha()
         self.app = self.spawnApple(self.snakeDict, self.appleImg)
@@ -108,30 +117,30 @@ class snakeGameAI():
             snakeD[obj].draw(screen)
 
     def updateBoard(self, snake, action):
-        RIGHT = 0
-        DOWN = 1
-        LEFT = 2
-        UP = 3
-        clockwise = [RIGHT, DOWN, LEFT, UP]
+        clockwise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        idx = clockwise.index(self.direction)
 
         if np.array_equal(action, [1,0,0]):
-            newDir = self.direction
+            newDir = clockwise[idx]
         elif np.array_equal(action, [0,1,0]):
-            newDir = (self.direction + 1) % 4
+            nextIdx = (idx + 1) % 4
+            newDir = clockwise[nextIdx]
         else:
-            newDir = (self.direction - 1) % 4
+            nextIdx = (idx - 1) % 4
+            newDir = clockwise[nextIdx]
+
         self.direction = newDir
     
         head = snake.get(0)
         self.partnerOldRow = head.row
         self.partnerOldCol = head.col
-        if self.direction == 3:
+        if self.direction == Direction.UP:
             head.row -= 1
-        elif self.direction == 1:
+        elif self.direction == Direction.DOWN:
             head.row += 1
-        elif self.direction == 2:
+        elif self.direction == Direction.LEFT:
             head.col -= 1
-        elif self.direction == 0:
+        elif self.direction == Direction.RIGHT:
             head.col += 1
 
         for obj in snake:
@@ -150,25 +159,30 @@ class snakeGameAI():
 
     def checkGameOver(self, snake, action):
         head = snake.get(0)
-        if action == 3 and head.row - 1 < 0:
-            return True
-        elif action == 1 and head.row + 1 > 9:
-            return True
-        elif action == 2 and head.col - 1 < 0:
-            return True
-        elif action == 0 and head.col + 1 > 9:
+        #if action == Direction.UP and head.row - 1 < 0:
+         #   return True
+        #elif action == Direction.DOWN and head.row + 1 > 9:
+         #   return True
+        #elif action == Direction.LEFT and head.col - 1 < 0:
+         #   return True
+        #elif action == Direction.RIGHT and head.col + 1 > 9:
+         #   return True
+
+        if head.row > 9 or head.row < 0 or head.col > 9 or head.col < 0:
             return True
         
         for obj in snake:
             self.current = snake[obj]
-            if head.col - 1 == self.current.col and head.row == self.current.row and action == 2:
+            if head.col == self.current.col and head.row == self.current.row and self.current != snake[0]:
                 return True
-            if head.col + 1 == self.current.col and head.row == self.current.row and action == 0:
-                return True
-            if head.col == self.current.col and head.row - 1 == self.current.row and action == 3:
-                return True
-            if head.col == self.current.col and head.row + 1 == self.current.row and action == 1:
-                return True
+            #if head.col - 1 == self.current.col and head.row == self.current.row and action == Direction.LEFT:
+             #   return True
+            #if head.col + 1 == self.current.col and head.row == self.current.row and action == Direction.RIGHT:
+             #   return True
+            #if head.col == self.current.col and head.row - 1 == self.current.row and action == Direction.UP:
+             #   return True
+            #if head.col == self.current.col and head.row + 1 == self.current.row and action == Direction.DOWN:
+             #   return True
         
         return False
 
@@ -232,10 +246,10 @@ class snakeGameAI():
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 sys.exit()
-        self.direction = action
         self.screen.fill("seagreen")
         self.drawSquares()
         self.drawBoard(self.snakeDict, self.screen)
+        #self.snakeDict = self.updateBoard(self.snakeDict, action)
         reward = 0
         if self.app:
             self.app.draw(self.screen)
