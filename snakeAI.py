@@ -157,7 +157,7 @@ class snakeGameAI():
 
         return snake
 
-    def checkGameOver(self, snake, action):
+    def checkGameOver(self, snake):
         head = snake.get(0)
         #if action == Direction.UP and head.row - 1 < 0:
          #   return True
@@ -242,6 +242,7 @@ class snakeGameAI():
     
     #Do gameplay loop forever, close when X is clicked
     def playStep(self, action):
+        reward = 0
         self.frame_iteration += 1
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -250,7 +251,6 @@ class snakeGameAI():
         self.drawSquares()
         self.drawBoard(self.snakeDict, self.screen)
         #self.snakeDict = self.updateBoard(self.snakeDict, action)
-        reward = 0
         if self.app:
             self.app.draw(self.screen)
         else:
@@ -259,22 +259,20 @@ class snakeGameAI():
         if self.ticks > self.timer:
             self.timer += 250
             if not self.gameOver:
-                self.gameOver = self.checkGameOver(self.snakeDict, action)
+                self.gameOver = self.checkGameOver(self.snakeDict)
             if not self.gameOver:
                 self.snakeDict = self.updateBoard(self.snakeDict, action)
                 self.lastMove = self.direction
                 if self.collectApple(self.snakeDict, self.app):
-                    reward += 10
+                    reward += 20
                     self.app = self.spawnApple(self.snakeDict, self.appleImg)
                     self.score += 1
                     self.snakeDict = self.growSnake(self.snakeDict, self.id, self.bodyImg)
                     self.id += 1
                     print(self.score)
-                else:
-                    reward -= 0.1
             if self.gameOver or self.frame_iteration > 100*len(self.snakeDict):
-                reward -= 10
-                self.reset()
+                reward -= 5
+                print(self.score)
                 return reward, self.gameOver, self.score
         
         pg.display.flip()

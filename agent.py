@@ -1,6 +1,7 @@
 import torch
 import random
 import numpy as np
+import copy
 from collections import deque
 from SnakeGame.snakeAI import snakeGameAI
 from SnakeGame.model import LinearQNet, QTrainer
@@ -20,35 +21,45 @@ class Agent:
         self.trainer = QTrainer(self.model, lr = LR, gamma = self.gamma)
 
     def getState(self, game):
-         head = game.snakeDict.get(0)
-         pointL = (head.col - 1, head.row)
-         pointR = (head.col + 1, head.row)
-         pointU = (head.col, head.row - 1)
-         pointD = (head.col, head.row + 1)
+         copyDictR = copy.deepcopy(game.snakeDict)
+         copyDictL = copy.deepcopy(game.snakeDict)
+         copyDictU = copy.deepcopy(game.snakeDict)
+         copyDictD = copy.deepcopy(game.snakeDict)
+
+         copyDictR = game.updateBoard(copyDictR, 1)
+         copyDictL = game.updateBoard(copyDictL, 2)
+         copyDictU = game.updateBoard(copyDictU, 3)
+         copyDictD = game.updateBoard(copyDictD, 4)
+         #head = game.snakeDict.get(0)
+         #pointL = (head.col - 1, head.row)
+         #pointR = (head.col + 1, head.row)
+         #pointU = (head.col, head.row - 1)
+         #pointD = (head.col, head.row + 1)
         
          dirL = game.direction == 2
          dirR = game.direction == 1
          dirU = game.direction == 3
          dirD = game.direction == 4
 
+    
          state = [
             # Danger straight
-            (dirR and game.checkGameOver(game.snakeDict, pointR)) or 
-            (dirL and game.checkGameOver(game.snakeDict, pointL)) or 
-            (dirU and game.checkGameOver(game.snakeDict, pointU)) or 
-            (dirD and game.checkGameOver(game.snakeDict, pointD)),
+            (dirR and game.checkGameOver(copyDictR)) or 
+            (dirL and game.checkGameOver(copyDictL)) or 
+            (dirU and game.checkGameOver(copyDictU)) or 
+            (dirD and game.checkGameOver(copyDictD)),
 
             # Danger right
-            (dirU and game.checkGameOver(game.snakeDict, pointR)) or 
-            (dirD and game.checkGameOver(game.snakeDict, pointL)) or 
-            (dirL and game.checkGameOver(game.snakeDict, pointU)) or 
-            (dirR and game.checkGameOver(game.snakeDict, pointD)),
+            (dirU and game.checkGameOver(copyDictR)) or 
+            (dirD and game.checkGameOver(copyDictL)) or 
+            (dirL and game.checkGameOver(copyDictU)) or 
+            (dirR and game.checkGameOver(copyDictD)),
 
             # Danger left
-            (dirD and game.checkGameOver(game.snakeDict, pointR)) or 
-            (dirU and game.checkGameOver(game.snakeDict, pointL)) or 
-            (dirR and game.checkGameOver(game.snakeDict, pointU)) or 
-            (dirL and game.checkGameOver(game.snakeDict, pointD)),
+            (dirD and game.checkGameOver(copyDictR)) or 
+            (dirU and game.checkGameOver(copyDictL)) or 
+            (dirR and game.checkGameOver(copyDictU)) or 
+            (dirL and game.checkGameOver(copyDictD)),
             
             # Move direction
             dirL,
