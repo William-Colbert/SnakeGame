@@ -3,7 +3,7 @@ import random
 import numpy as np
 import copy
 from collections import deque
-from SnakeGame.snakeAI import snakeGameAI
+from SnakeGame.snakeAI import snakeGameAI, Direction
 from SnakeGame.model import LinearQNet, QTrainer
 from SnakeGame.helper import plot
 
@@ -26,41 +26,37 @@ class Agent:
          copyDictU = copy.deepcopy(game.snakeDict)
          copyDictD = copy.deepcopy(game.snakeDict)
 
-         copyDictR = game.updateBoard(copyDictR, 1)
-         copyDictL = game.updateBoard(copyDictL, 2)
-         copyDictU = game.updateBoard(copyDictU, 3)
-         copyDictD = game.updateBoard(copyDictD, 4)
-         #head = game.snakeDict.get(0)
-         #pointL = (head.col - 1, head.row)
-         #pointR = (head.col + 1, head.row)
-         #pointU = (head.col, head.row - 1)
-         #pointD = (head.col, head.row + 1)
-        
-         dirL = game.direction == 2
-         dirR = game.direction == 1
-         dirU = game.direction == 3
-         dirD = game.direction == 4
+         #copyDictR = game.updateBoard(copyDictR, 1)
+         #copyDictL = game.updateBoard(copyDictL, 2)
+         #copyDictU = game.updateBoard(copyDictU, 3)
+         #copyDictD = game.updateBoard(copyDictD, 4)
+         
+         dirL = game.direction == Direction.LEFT
+         dirR = game.direction == Direction.RIGHT
+         dirU = game.direction == Direction.UP
+         dirD = game.direction == Direction.DOWN
 
          manDistance = abs(game.app.row - game.snakeDict.get(0).row) + abs(game.app.col - game.snakeDict.get(0).col)
     
+         #print("Danger Down and facing right:", dirR and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0])))
          state = [
             # Danger straight
-            (dirR and game.checkGameOver(copyDictR)) or 
-            (dirL and game.checkGameOver(copyDictL)) or 
-            (dirU and game.checkGameOver(copyDictU)) or 
-            (dirD and game.checkGameOver(copyDictD)),
+            (dirR and game.checkGameOver(game.updateBoard(copyDictR, [1,0,0]))) or 
+            (dirL and game.checkGameOver(game.updateBoard(copyDictR, [1,0,0]))) or 
+            (dirU and game.checkGameOver(game.updateBoard(copyDictR, [1,0,0]))) or 
+            (dirD and game.checkGameOver(game.updateBoard(copyDictR, [1,0,0]))),
 
             # Danger right
-            (dirU and game.checkGameOver(copyDictR)) or 
-            (dirD and game.checkGameOver(copyDictL)) or 
-            (dirL and game.checkGameOver(copyDictU)) or 
-            (dirR and game.checkGameOver(copyDictD)),
+            (dirU and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0]))) or 
+            (dirD and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0]))) or 
+            (dirL and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0]))) or 
+            (dirR and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0]))),
 
             # Danger left
-            (dirD and game.checkGameOver(copyDictR)) or 
-            (dirU and game.checkGameOver(copyDictL)) or 
-            (dirR and game.checkGameOver(copyDictU)) or 
-            (dirL and game.checkGameOver(copyDictD)),
+            (dirD and game.checkGameOver(game.updateBoard(copyDictR, [0,0,1]))) or 
+            (dirU and game.checkGameOver(game.updateBoard(copyDictR, [0,0,1]))) or 
+            (dirR and game.checkGameOver(game.updateBoard(copyDictR, [0,0,1]))) or 
+            (dirL and game.checkGameOver(game.updateBoard(copyDictR, [0,0,1]))),
             
             # Move direction
             dirL,
@@ -79,6 +75,7 @@ class Agent:
 
             # Timer almost out
             game.frame_iteration > 80 * len(game.snakeDict)
+
             ]
 
          return np.array(state, dtype=int)
@@ -100,7 +97,7 @@ class Agent:
 
     def getAction(self, state):
         #random moves: tradeoff exploration/exploitation
-        self.epsilon = max(10, 300 - self.numGames)
+        self.epsilon = max(10, 240 - self.numGames)
         finalMove = [0,0,0]
         if random.randint(0, 200) < self.epsilon:
             print(self.epsilon)
@@ -113,6 +110,7 @@ class Agent:
             move = torch.argmax(prediction).item()
             finalMove[move] = 1
 
+        #print("Move:", finalMove)
         return finalMove
 
 def train():

@@ -82,6 +82,7 @@ class snakeGameAI():
         self.score = 0
         self.id = 2
         self.frame_iteration = 0
+        self.stepsSinceLastApple = 0
 
 
     #Functions
@@ -265,21 +266,25 @@ class snakeGameAI():
                 self.snakeDict = self.updateBoard(self.snakeDict, action)
                 self.lastMove = self.direction
                 newDistance = abs(self.app.row - self.snakeDict.get(0).row) + abs(self.app.col - self.snakeDict.get(0).col)
+                self.stepsSinceLastApple += 1
                 if self.collectApple(self.snakeDict, self.app):
-                    reward += 20
-                    self.app = self.spawnApple(self.snakeDict, self.appleImg)
                     self.score += 1
+                    self.stepsSinceLastApple = 0
+                    reward = 50 + (2 * self.score)
+                    self.app = self.spawnApple(self.snakeDict, self.appleImg)
                     self.snakeDict = self.growSnake(self.snakeDict, self.id, self.bodyImg)
                     self.id += 1
                     print(self.score)
                 if self.oldDistance > newDistance:
-                    reward += 1
+                    reward += 2
                     self.oldDistance = newDistance
                 elif self.oldDistance < newDistance:
-                    reward -= 1
+                    reward -= 2
                     self.oldDistance = newDistance
+                if self.stepsSinceLastApple > 30:
+                    reward -= 10
             if self.gameOver or self.frame_iteration > 100*len(self.snakeDict):
-                reward -= 5
+                reward -= 20
                 print(self.score)
                 return reward, self.gameOver, self.score
         
