@@ -17,7 +17,7 @@ class Agent:
         self.epsilon = 0 #randomness
         self.gamma = 0.9 #discount rate
         self.memory = deque(maxlen=MAX_MEMORY) #poplef()
-        self.model = LinearQNet(11, 256, 3)
+        self.model = LinearQNet(13, 128, 3)
         self.trainer = QTrainer(self.model, lr = LR, gamma = self.gamma)
 
     def getState(self, game):
@@ -41,6 +41,7 @@ class Agent:
          dirU = game.direction == 3
          dirD = game.direction == 4
 
+         manDistance = abs(game.app.row - game.snakeDict.get(0).row) + abs(game.app.col - game.snakeDict.get(0).col)
     
          state = [
             # Danger straight
@@ -71,7 +72,13 @@ class Agent:
             game.app.col < game.snakeDict.get(0).col,  # food left
             game.app.col > game.snakeDict.get(0).col,  # food right
             game.app.row < game.snakeDict.get(0).row,  # food up
-            game.app.row > game.snakeDict.get(0).row  # food down
+            game.app.row > game.snakeDict.get(0).row,  # food down
+
+            # Apple Distance
+            manDistance,
+
+            # Timer almost out
+            game.frame_iteration > 80 * len(game.snakeDict)
             ]
 
          return np.array(state, dtype=int)
@@ -93,9 +100,11 @@ class Agent:
 
     def getAction(self, state):
         #random moves: tradeoff exploration/exploitation
-        self.epsilon = 80 - self.numGames
+        self.epsilon = max(10, 300 - self.numGames)
         finalMove = [0,0,0]
         if random.randint(0, 200) < self.epsilon:
+            print(self.epsilon)
+            print("RANDOM MOVE")
             move = random.randint(0, 2)
             finalMove[move] = 1
         else:

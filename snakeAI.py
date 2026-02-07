@@ -78,6 +78,7 @@ class snakeGameAI():
         self.gameOver = False
         self.appleImg = pg.image.load('SnakeGame/assets/apple.png').convert_alpha()
         self.app = self.spawnApple(self.snakeDict, self.appleImg)
+        self.oldDistance = abs(self.app.row - self.snakeDict.get(0).row) + abs(self.app.col - self.snakeDict.get(0).col)
         self.score = 0
         self.id = 2
         self.frame_iteration = 0
@@ -263,6 +264,7 @@ class snakeGameAI():
             if not self.gameOver:
                 self.snakeDict = self.updateBoard(self.snakeDict, action)
                 self.lastMove = self.direction
+                newDistance = abs(self.app.row - self.snakeDict.get(0).row) + abs(self.app.col - self.snakeDict.get(0).col)
                 if self.collectApple(self.snakeDict, self.app):
                     reward += 20
                     self.app = self.spawnApple(self.snakeDict, self.appleImg)
@@ -270,6 +272,12 @@ class snakeGameAI():
                     self.snakeDict = self.growSnake(self.snakeDict, self.id, self.bodyImg)
                     self.id += 1
                     print(self.score)
+                if self.oldDistance > newDistance:
+                    reward += 1
+                    self.oldDistance = newDistance
+                elif self.oldDistance < newDistance:
+                    reward -= 1
+                    self.oldDistance = newDistance
             if self.gameOver or self.frame_iteration > 100*len(self.snakeDict):
                 reward -= 5
                 print(self.score)
