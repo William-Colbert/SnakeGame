@@ -17,19 +17,11 @@ class Agent:
         self.epsilon = 0 #randomness
         self.gamma = 0.9 #discount rate
         self.memory = deque(maxlen=MAX_MEMORY) #poplef()
-        self.model = LinearQNet(13, 128, 3)
+        self.model = LinearQNet(15, 256, 3)
         self.trainer = QTrainer(self.model, lr = LR, gamma = self.gamma)
 
     def getState(self, game):
-         copyDictR = copy.deepcopy(game.snakeDict)
-         copyDictL = copy.deepcopy(game.snakeDict)
-         copyDictU = copy.deepcopy(game.snakeDict)
-         copyDictD = copy.deepcopy(game.snakeDict)
-
-         #copyDictR = game.updateBoard(copyDictR, 1)
-         #copyDictL = game.updateBoard(copyDictL, 2)
-         #copyDictU = game.updateBoard(copyDictU, 3)
-         #copyDictD = game.updateBoard(copyDictD, 4)
+         copyDict = copy.deepcopy(game.snakeDict)
          
          dirL = game.direction == Direction.LEFT
          dirR = game.direction == Direction.RIGHT
@@ -37,26 +29,35 @@ class Agent:
          dirD = game.direction == Direction.DOWN
 
          manDistance = abs(game.app.row - game.snakeDict.get(0).row) + abs(game.app.col - game.snakeDict.get(0).col)
+         totalApplesCollected = game.score
+         stepsSinceLastScore = game.stepsSinceLastApple
+
+         #dangerStraight = dirR and game.checkGameOver(game.updateHead(copyDict, [1,0,0])) or dirL and game.checkGameOver(game.updateHead(copyDict, [1,0,0])) or dirU and game.checkGameOver(game.updateHead(copyDict, [1,0,0])) or dirD and game.checkGameOver(game.updateHead(copyDict, [1,0,0]))
+         #dangerRight = dirR and game.checkGameOver(game.updateHead(copyDict, [0,1,0])) or dirL and game.checkGameOver(game.updateHead(copyDict, [0,1,0])) or dirU and game.checkGameOver(game.updateHead(copyDict, [0,1,0])) or dirD and game.checkGameOver(game.updateHead(copyDict, [0,1,0]))
+         #dangerLeft = dirR and game.checkGameOver(game.updateHead(copyDict, [0,0,1])) or dirL and game.checkGameOver(game.updateHead(copyDict, [0,0,1])) or dirU and game.checkGameOver(game.updateHead(copyDict, [0,0,1])) or dirD and game.checkGameOver(game.updateHead(copyDict, [0,0,1]))
     
-         #print("Danger Down and facing right:", dirR and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0])))
+         #print("Danger Straight:", dangerStraight)
+         #print("Danger Right:", dangerRight)
+         #print("Danger Left:", dangerLeft)
+         #print("-------")
          state = [
             # Danger straight
-            (dirR and game.checkGameOver(game.updateBoard(copyDictR, [1,0,0]))) or 
-            (dirL and game.checkGameOver(game.updateBoard(copyDictR, [1,0,0]))) or 
-            (dirU and game.checkGameOver(game.updateBoard(copyDictR, [1,0,0]))) or 
-            (dirD and game.checkGameOver(game.updateBoard(copyDictR, [1,0,0]))),
+            (dirR and game.checkGameOver(game.updateHead(copyDict, [1,0,0]))) or 
+            (dirL and game.checkGameOver(game.updateHead(copyDict, [1,0,0]))) or 
+            (dirU and game.checkGameOver(game.updateHead(copyDict, [1,0,0]))) or 
+            (dirD and game.checkGameOver(game.updateHead(copyDict, [1,0,0]))),
 
             # Danger right
-            (dirU and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0]))) or 
-            (dirD and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0]))) or 
-            (dirL and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0]))) or 
-            (dirR and game.checkGameOver(game.updateBoard(copyDictR, [0,1,0]))),
+            (dirU and game.checkGameOver(game.updateHead(copyDict, [0,1,0]))) or 
+            (dirD and game.checkGameOver(game.updateHead(copyDict, [0,1,0]))) or 
+            (dirL and game.checkGameOver(game.updateHead(copyDict, [0,1,0]))) or 
+            (dirR and game.checkGameOver(game.updateHead(copyDict, [0,1,0]))),
 
             # Danger left
-            (dirD and game.checkGameOver(game.updateBoard(copyDictR, [0,0,1]))) or 
-            (dirU and game.checkGameOver(game.updateBoard(copyDictR, [0,0,1]))) or 
-            (dirR and game.checkGameOver(game.updateBoard(copyDictR, [0,0,1]))) or 
-            (dirL and game.checkGameOver(game.updateBoard(copyDictR, [0,0,1]))),
+            (dirD and game.checkGameOver(game.updateHead(copyDict, [0,0,1]))) or 
+            (dirU and game.checkGameOver(game.updateHead(copyDict, [0,0,1]))) or 
+            (dirR and game.checkGameOver(game.updateHead(copyDict, [0,0,1]))) or 
+            (dirL and game.checkGameOver(game.updateHead(copyDict, [0,0,1]))),
             
             # Move direction
             dirL,
@@ -74,7 +75,13 @@ class Agent:
             manDistance,
 
             # Timer almost out
-            game.frame_iteration > 80 * len(game.snakeDict)
+            game.frame_iteration > 80 * len(game.snakeDict),
+
+            # Apples Collected
+            totalApplesCollected,
+
+            # Steps since last apple
+            stepsSinceLastScore
 
             ]
 
@@ -97,7 +104,7 @@ class Agent:
 
     def getAction(self, state):
         #random moves: tradeoff exploration/exploitation
-        self.epsilon = max(10, 240 - self.numGames)
+        self.epsilon = max(10, 210 - self.numGames)
         finalMove = [0,0,0]
         if random.randint(0, 200) < self.epsilon:
             print(self.epsilon)

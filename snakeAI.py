@@ -2,6 +2,7 @@
 import numpy as np
 import pygame as pg
 import random
+import copy
 from enum import Enum
 import math
 import sys
@@ -118,21 +119,7 @@ class snakeGameAI():
         for obj in snakeD:
             snakeD[obj].draw(screen)
 
-    def updateBoard(self, snake, action):
-        clockwise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
-        idx = clockwise.index(self.direction)
-
-        if np.array_equal(action, [1,0,0]):
-            newDir = clockwise[idx]
-        elif np.array_equal(action, [0,1,0]):
-            nextIdx = (idx + 1) % 4
-            newDir = clockwise[nextIdx]
-        else:
-            nextIdx = (idx - 1) % 4
-            newDir = clockwise[nextIdx]
-
-        self.direction = newDir
-    
+    def updateBoard(self, snake):
         head = snake.get(0)
         self.partnerOldRow = head.row
         self.partnerOldCol = head.col
@@ -161,13 +148,13 @@ class snakeGameAI():
 
     def checkGameOver(self, snake):
         head = snake.get(0)
-        #if action == Direction.UP and head.row - 1 < 0:
+        #if self.direction == Direction.UP and head.row - 1 < 0:
          #   return True
-        #elif action == Direction.DOWN and head.row + 1 > 9:
+        #elif self.direction== Direction.DOWN and head.row + 1 > 9:
          #   return True
-        #elif action == Direction.LEFT and head.col - 1 < 0:
+        #elif self.direction == Direction.LEFT and head.col - 1 < 0:
          #   return True
-        #elif action == Direction.RIGHT and head.col + 1 > 9:
+        #elif self.direction == Direction.RIGHT and head.col + 1 > 9:
          #   return True
 
         if head.row > 9 or head.row < 0 or head.col > 9 or head.col < 0:
@@ -177,14 +164,14 @@ class snakeGameAI():
             self.current = snake[obj]
             if head.col == self.current.col and head.row == self.current.row and self.current != snake[0]:
                 return True
-            #if head.col - 1 == self.current.col and head.row == self.current.row and action == Direction.LEFT:
-             #   return True
-            #if head.col + 1 == self.current.col and head.row == self.current.row and action == Direction.RIGHT:
-             #   return True
-            #if head.col == self.current.col and head.row - 1 == self.current.row and action == Direction.UP:
-             #   return True
-            #if head.col == self.current.col and head.row + 1 == self.current.row and action == Direction.DOWN:
-             #   return True
+            #if head.col - 1 == self.current.col and head.row == self.current.row and self.direction == Direction.LEFT:
+                #return True
+            #if head.col + 1 == self.current.col and head.row == self.current.row and self.direction == Direction.RIGHT:
+                #return True
+            #if head.col == self.current.col and head.row - 1 == self.current.row and self.direction == Direction.UP:
+                #return True
+            #if head.col == self.current.col and head.row + 1 == self.current.row and self.direction == Direction.DOWN:
+                #return True
         
         return False
 
@@ -240,10 +227,56 @@ class snakeGameAI():
             snake[id] = self.body(self.lastBody.row + 1, self.lastBody.col, img)
             print("grow: " + str(id)) 
             return snake
+        
+    def updateHead(self, snake, action):
+        #FUNCTION FOR GAMESTATE IN AGENT ONLY
+        copySnake = copy.deepcopy(snake)
+        head = copySnake.get(0)
+
+        clockwise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        idx = clockwise.index(self.direction)
+
+        if np.array_equal(action, [1,0,0]):
+            newDir = clockwise[idx]
+        elif np.array_equal(action, [0,1,0]):
+            nextIdx = (idx + 1) % 4
+            newDir = clockwise[nextIdx]
+        else:
+            nextIdx = (idx - 1) % 4
+            newDir = clockwise[nextIdx]
+
+        if newDir == Direction.UP:
+            head.row -= 1
+        elif newDir == Direction.DOWN:
+            head.row += 1
+        elif newDir == Direction.LEFT:
+            head.col -= 1
+        elif newDir == Direction.RIGHT:
+            head.col += 1
+
+        return copySnake
+    
+    def newDirection(self, action):
+        clockwise = [Direction.RIGHT, Direction.DOWN, Direction.LEFT, Direction.UP]
+        idx = clockwise.index(self.direction)
+
+        if np.array_equal(action, [1,0,0]):
+            newDir = clockwise[idx]
+        elif np.array_equal(action, [0,1,0]):
+            nextIdx = (idx + 1) % 4
+            newDir = clockwise[nextIdx]
+        else:
+            nextIdx = (idx - 1) % 4
+            newDir = clockwise[nextIdx]
+
+        self.direction = newDir
+
+
 
     
     #Do gameplay loop forever, close when X is clicked
     def playStep(self, action):
+        self.newDirection(action)
         reward = 0
         self.frame_iteration += 1
         for event in pg.event.get():
@@ -263,7 +296,7 @@ class snakeGameAI():
             if not self.gameOver:
                 self.gameOver = self.checkGameOver(self.snakeDict)
             if not self.gameOver:
-                self.snakeDict = self.updateBoard(self.snakeDict, action)
+                self.snakeDict = self.updateBoard(self.snakeDict)
                 self.lastMove = self.direction
                 newDistance = abs(self.app.row - self.snakeDict.get(0).row) + abs(self.app.col - self.snakeDict.get(0).col)
                 self.stepsSinceLastApple += 1
@@ -279,15 +312,16 @@ class snakeGameAI():
                     reward += 2
                     self.oldDistance = newDistance
                 elif self.oldDistance < newDistance:
-                    reward -= 2
+                    reward -= 1
                     self.oldDistance = newDistance
                 if self.stepsSinceLastApple > 30:
-                    reward -= 10
+                    reward -= 5
+                    self.stepsSinceLastApple = 0
             if self.gameOver or self.frame_iteration > 100*len(self.snakeDict):
                 reward -= 20
                 print(self.score)
                 return reward, self.gameOver, self.score
         
         pg.display.flip()
-        self.clock.tick(10)
+        self.clock.tick(30)
         return reward, self.gameOver, self.score
