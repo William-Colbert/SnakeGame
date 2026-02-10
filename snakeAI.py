@@ -323,5 +323,5 @@ class snakeGameAI():
                 return reward, self.gameOver, self.score
         
         pg.display.flip()
-        self.clock.tick(30)
+        self.clock.tick(10)
         return reward, self.gameOver, self.score
